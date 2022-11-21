@@ -1,0 +1,100 @@
+version: "3.3"
+
+services:
+
+  laravel-echo-server:
+    image: oanhnn/laravel-echo-server:2.1.1
+    container_name: echo-server
+    ports:
+      - 8065:6001
+    environment:
+      - REDIS_HOST=api-redis
+      - LARAVEL_ECHO_SERVER_AUTH_HOST=http://api-web-server
+      - LARAVEL_ECHO_SERVER_DEBUG=true
+
+  redis:
+    image: redis:alpine
+    container_name: api-redis
+
+  mysql:
+    image: mariadb:10.4
+    container_name: api-mysql
+    working_dir: /application
+    volumes:
+      - .:/application
+      - mysql-volume:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123123123
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=123123123
+    ports:
+      - 8012:3306
+
+  mysql-testing:
+    image: mariadb:10.4
+    container_name: api-mysql-testing
+    working_dir: /application
+    volumes:
+      - .:/application
+      - mysql-testing-volume:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123123123
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=123123123
+    ports:
+      - 8020:3306
+
+  webserver:
+    image: nginx:alpine
+    container_name: api-web-server
+    working_dir: /application
+    volumes:
+      - .:/application
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - 8080:80
+
+  php-fpm:
+    image: alleotech/php-fpm:7.4
+    container_name: api-php-fpm
+    environment:
+      - PHP_MEMORY_LIMIT=2048M
+    working_dir: /application
+    volumes:
+      - .:/application
+
+  php-fpm-testing:
+    build: docker/php-fpm
+    container_name: api-php-fpm-testing
+    environment:
+      - PHP_MEMORY_LIMIT=4096M
+    working_dir: /application
+    volumes:
+      - .:/application
+      - ./docker/php-fpm/xdebug.ini:/etc/php.d/xdebug.ini
+
+  elasticsearch:
+    image: elasticsearch:7.9.3
+    container_name: api-elasticsearch
+    working_dir: /application
+    ports:
+      - 9200:9200
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=api-mysql
+    restart: always
+    ports:
+      - 8013:80
+
+volumes:
+  mysql-volume:
+  mysql-testing-volume:
+
+networks:
+  default:
+    external:
+      name: network
